@@ -5,8 +5,8 @@ pipeline {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
         DOCKERHUB_IMAGE       = "narlechitane38200/paymybuddy"
         SONAR_TOKEN           = credentials('sonarcloud-token')
-        SONAR_ORG             = "narlechitane38200-26wzd-26wZd"
-        SONAR_PROJECT_KEY     = "analyse-via-cli"
+        SONAR_ORG             = "JENKINS_SONAR_MINIPROJET"
+        SONAR_PROJECT_KEY     = "jenkins-sonar-miniprojet"
         SLACK_CHANNEL         = "#ci-cd"
         APP_PORT              = "8080"
         DB_PORT               = "3306"
