@@ -155,7 +155,6 @@ pipeline {
                                         -e SPRING_DATASOURCE_PASSWORD="${MYSQL_PASSWORD}" \
                                         -p ${APP_PORT}:8080 \
                                         ${DOCKER_IMAGE}
-ENDSSH
                         """
                     }
                 }
@@ -252,7 +251,6 @@ ENDSSH
                                         -e SPRING_DATASOURCE_PASSWORD="${MYSQL_PASSWORD}" \
                                         -p ${APP_PORT}:8080 \
                                         ${DOCKER_IMAGE}
-ENDSSH
                         """
                     }
                 }
