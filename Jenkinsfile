@@ -195,6 +195,7 @@ pipeline {
                                     -e MYSQL_PASSWORD="${MYSQL_PASSWORD}" \
                                     -e MYSQL_ROOT_PASSWORD="${MYSQL_PASSWORD}" \
                                     -v /tmp/create.sql:/docker-entrypoint-initdb.d/create.sql \
+                                    -v paymybuddy-db-data:/var/lib/mysql \
                                     -p ${DB_PORT}:3306 \
                                     mysql:8.0
 
@@ -216,6 +217,7 @@ pipeline {
         }
 
         stage('Validation Tests - Production') {
+            when { branch 'main' }
             agent {
                 docker { image 'curlimages/curl:latest' }
             }
