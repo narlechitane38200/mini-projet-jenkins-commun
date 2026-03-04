@@ -94,10 +94,14 @@ pipeline {
                     sshagent(credentials: ['ec2-ssh-key']) {
                         sh '''
                             set -e
+                            mkdir -p ~/.ssh
+                            chmod 700 ~/.ssh
                             ssh-keyscan -H $STAGING_HOST >> ~/.ssh/known_hosts
+                            chmod 600 ~/.ssh/known_hosts
 
                             # Transfert du script SQL d'init vers le serveur Staging
                             scp -o StrictHostKeyChecking=no \
+                                -o UserKnownHostsFile=~/.ssh/known_hosts \
                                 ${WORKSPACE}/PayMyBuddy/initdb/create.sql \
                                 ubuntu@$STAGING_HOST:/tmp/create.sql
 
@@ -177,12 +181,16 @@ EOF
                     sshagent(credentials: ['ec2-ssh-key']) {
                         sh '''
                             set -e
-                            ssh-keyscan -H $PROD_HOST >> ~/.ssh/known_hosts
+                            mkdir -p ~/.ssh
+                            chmod 700 ~/.ssh
+                            ssh-keyscan -H $STAGING_HOST >> ~/.ssh/known_hosts
+                            chmod 600 ~/.ssh/known_hosts
 
-                            # Transfert du script SQL d'init vers le serveur Production
+                            # Transfert du script SQL d'init vers le serveur Staging
                             scp -o StrictHostKeyChecking=no \
+                                -o UserKnownHostsFile=~/.ssh/known_hosts \
                                 ${WORKSPACE}/PayMyBuddy/initdb/create.sql \
-                                ubuntu@$PROD_HOST:/tmp/create.sql
+                                ubuntu@$STAGING_HOST:/tmp/create.sql
 
                             ssh -o StrictHostKeyChecking=no ubuntu@$PROD_HOST bash << EOF
                                 set -e
