@@ -7,7 +7,7 @@ pipeline {
         SONAR_TOKEN           = credentials('sonarcloud-token')
         SONAR_ORG             = "JENKINS_SONAR_MINIPROJET"
         SONAR_PROJECT_KEY     = "jenkins-sonar-miniprojet"
-        SLACK_CHANNEL         = "#ci-cd"
+        SLACK_CHANNEL         = "#mini-projet-jenkins-radouane"
         APP_PORT              = "8080"
         DB_PORT               = "3306"
     }
@@ -23,7 +23,7 @@ pipeline {
             }
             steps {
                 dir('PayMyBuddy') {
-                    sh 'mvn test'
+                    sh 'mvn clean test'
                 }
             }
             post {
