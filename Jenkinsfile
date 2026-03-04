@@ -96,6 +96,7 @@ pipeline {
                     sshagent(credentials: ['ec2-ssh-key']) {
 
                         sh """
+                        ssh-keyscan -H ${STAGING_HOST} >> ~/.ssh/known_hosts
                         ssh -o StrictHostKeyChecking=no ubuntu@${STAGING_HOST} '
                             set -e
 
@@ -168,6 +169,7 @@ pipeline {
                     sshagent(credentials: ['ec2-ssh-key']) {
 
                         sh """
+                        ssh-keyscan -H ${STAGING_HOST} >> ~/.ssh/known_hosts
                         ssh -o StrictHostKeyChecking=no ubuntu@${PROD_HOST} '
                             set -e
 
