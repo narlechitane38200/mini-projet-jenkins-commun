@@ -58,7 +58,7 @@ pipeline {
                  docker {
                       image 'docker:24'
                        args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
+                }
             }
             steps {
                 dir('PayMyBuddy') {
@@ -94,36 +94,42 @@ pipeline {
                 ]) {
 
                     sshagent(credentials: ['ec2-ssh-key']) {
-
                         sh """
-                        ssh-keyscan -H ${STAGING_HOST} >> ~/.ssh/known_hosts
-                        ssh -o StrictHostKeyChecking=no ubuntu@${STAGING_HOST} '
-                            set -e
+                            ssh-keyscan -H ${STAGING_HOST} >> ~/.ssh/known_hosts
 
-                            docker network inspect paymybuddy-net >/dev/null 2>&1 || \
-                                docker network create paymybuddy-net
+                            # Transfert du script SQL d'init vers le serveur Staging
+                            scp -o StrictHostKeyChecking=no \
+                                PayMyBuddy/initdb/create.sql \
+                                ubuntu@${STAGING_HOST}:/tmp/create.sql
 
-                            docker rm -f paymybuddy-db 2>/dev/null || true
-                            docker run -d --name paymybuddy-db \
-                                --network paymybuddy-net \
-                                -e MYSQL_DATABASE=db_paymybuddy \
-                                -e MYSQL_USER="${MYSQL_USER}" \
-                                -e MYSQL_PASSWORD="${MYSQL_PASSWORD}" \
-                                -e MYSQL_ROOT_PASSWORD="${MYSQL_PASSWORD}" \
-                                -p ${DB_PORT}:3306 \
-                                mysql:8.0
+                            ssh -o StrictHostKeyChecking=no ubuntu@${STAGING_HOST} '
+                                set -e
 
-                            sleep 25
+                                docker network inspect paymybuddy-net >/dev/null 2>&1 || \
+                                    docker network create paymybuddy-net
 
-                            docker rm -f paymybuddy-app 2>/dev/null || true
-                            docker run -d --name paymybuddy-app \
-                                --network paymybuddy-net \
-                                -e SPRING_DATASOURCE_URL=jdbc:mysql://paymybuddy-db:3306/db_paymybuddy \
-                                -e SPRING_DATASOURCE_USERNAME="${MYSQL_USER}" \
-                                -e SPRING_DATASOURCE_PASSWORD="${MYSQL_PASSWORD}" \
-                                -p ${APP_PORT}:8080 \
-                                ${DOCKERHUB_IMAGE}:${BUILD_NUMBER}
-                        '
+                                docker rm -f paymybuddy-db 2>/dev/null || true
+                                docker run -d --name paymybuddy-db \
+                                    --network paymybuddy-net \
+                                    -e MYSQL_DATABASE=db_paymybuddy \
+                                    -e MYSQL_USER="${MYSQL_USER}" \
+                                    -e MYSQL_PASSWORD="${MYSQL_PASSWORD}" \
+                                    -e MYSQL_ROOT_PASSWORD="${MYSQL_PASSWORD}" \
+                                    -v /tmp/create.sql:/docker-entrypoint-initdb.d/create.sql \
+                                    -p ${DB_PORT}:3306 \
+                                    mysql:8.0
+
+                                sleep 25
+
+                                docker rm -f paymybuddy-app 2>/dev/null || true
+                                docker run -d --name paymybuddy-app \
+                                    --network paymybuddy-net \
+                                    -e SPRING_DATASOURCE_URL=jdbc:mysql://paymybuddy-db:3306/db_paymybuddy \
+                                    -e SPRING_DATASOURCE_USERNAME="${MYSQL_USER}" \
+                                    -e SPRING_DATASOURCE_PASSWORD="${MYSQL_PASSWORD}" \
+                                    -p ${APP_PORT}:8080 \
+                                    ${DOCKERHUB_IMAGE}:${BUILD_NUMBER}
+                            '
                         """
                     }
                 }
@@ -167,36 +173,42 @@ pipeline {
                 ]) {
 
                     sshagent(credentials: ['ec2-ssh-key']) {
-
                         sh """
-                        ssh-keyscan -H ${STAGING_HOST} >> ~/.ssh/known_hosts
-                        ssh -o StrictHostKeyChecking=no ubuntu@${PROD_HOST} '
-                            set -e
+                            ssh-keyscan -H ${PROD_HOST} >> ~/.ssh/known_hosts
 
-                            docker network inspect paymybuddy-net >/dev/null 2>&1 || \
-                                docker network create paymybuddy-net
+                            # Transfert du script SQL d'init vers le serveur Production
+                            scp -o StrictHostKeyChecking=no \
+                                PayMyBuddy/initdb/create.sql \
+                                ubuntu@${PROD_HOST}:/tmp/create.sql
 
-                            docker rm -f paymybuddy-db 2>/dev/null || true
-                            docker run -d --name paymybuddy-db \
-                                --network paymybuddy-net \
-                                -e MYSQL_DATABASE=db_paymybuddy \
-                                -e MYSQL_USER="${MYSQL_USER}" \
-                                -e MYSQL_PASSWORD="${MYSQL_PASSWORD}" \
-                                -e MYSQL_ROOT_PASSWORD="${MYSQL_PASSWORD}" \
-                                -p ${DB_PORT}:3306 \
-                                mysql:8.0
+                            ssh -o StrictHostKeyChecking=no ubuntu@${PROD_HOST} '
+                                set -e
 
-                            sleep 25
+                                docker network inspect paymybuddy-net >/dev/null 2>&1 || \
+                                    docker network create paymybuddy-net
 
-                            docker rm -f paymybuddy-app 2>/dev/null || true
-                            docker run -d --name paymybuddy-app \
-                                --network paymybuddy-net \
-                                -e SPRING_DATASOURCE_URL=jdbc:mysql://paymybuddy-db:3306/db_paymybuddy \
-                                -e SPRING_DATASOURCE_USERNAME="${MYSQL_USER}" \
-                                -e SPRING_DATASOURCE_PASSWORD="${MYSQL_PASSWORD}" \
-                                -p ${APP_PORT}:8080 \
-                                ${DOCKERHUB_IMAGE}:${BUILD_NUMBER}
-                        '
+                                docker rm -f paymybuddy-db 2>/dev/null || true
+                                docker run -d --name paymybuddy-db \
+                                    --network paymybuddy-net \
+                                    -e MYSQL_DATABASE=db_paymybuddy \
+                                    -e MYSQL_USER="${MYSQL_USER}" \
+                                    -e MYSQL_PASSWORD="${MYSQL_PASSWORD}" \
+                                    -e MYSQL_ROOT_PASSWORD="${MYSQL_PASSWORD}" \
+                                    -v /tmp/create.sql:/docker-entrypoint-initdb.d/create.sql \
+                                    -p ${DB_PORT}:3306 \
+                                    mysql:8.0
+
+                                sleep 25
+
+                                docker rm -f paymybuddy-app 2>/dev/null || true
+                                docker run -d --name paymybuddy-app \
+                                    --network paymybuddy-net \
+                                    -e SPRING_DATASOURCE_URL=jdbc:mysql://paymybuddy-db:3306/db_paymybuddy \
+                                    -e SPRING_DATASOURCE_USERNAME="${MYSQL_USER}" \
+                                    -e SPRING_DATASOURCE_PASSWORD="${MYSQL_PASSWORD}" \
+                                    -p ${APP_PORT}:8080 \
+                                    ${DOCKERHUB_IMAGE}:${BUILD_NUMBER}
+                            '
                         """
                     }
                 }
