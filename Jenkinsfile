@@ -47,7 +47,7 @@ pipeline {
                           -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                           -Dsonar.organization=${SONAR_ORG} \
                           -Dsonar.host.url=https://sonarcloud.io \
-                          -Dsonar.login=${SONAR_TOKEN}
+                          -Dsonar.token=${SONAR_TOKEN}
                     """
                 }
             }
@@ -55,10 +55,10 @@ pipeline {
 
         stage('Build & Push Docker Image') {
             agent {
-                docker {
-                    image 'docker:24-dind'
-                    args '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
-                }
+                 docker {
+                      image 'docker:24'
+                       args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
             }
             steps {
                 dir('PayMyBuddy') {
@@ -81,7 +81,6 @@ pipeline {
         }
 
         stage('Deploy - Staging') {
-            when { branch 'main' }
             agent { label 'built-in' }
 
             steps {
@@ -131,7 +130,6 @@ pipeline {
         }
 
         stage('Validation Tests - Staging') {
-            when { branch 'main' }
             agent {
                 docker { image 'curlimages/curl:latest' }
             }
@@ -204,7 +202,6 @@ pipeline {
         }
 
         stage('Validation Tests - Production') {
-            when { branch 'main' }
             agent {
                 docker { image 'curlimages/curl:latest' }
             }
