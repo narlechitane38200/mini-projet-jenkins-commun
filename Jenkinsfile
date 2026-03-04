@@ -92,15 +92,13 @@ pipeline {
                     string(credentialsId: 'staging-ec2-host', variable: 'STAGING_HOST')
                 ]) {
                     sshagent(credentials: ['ec2-ssh-key']) {
-                        // ✅ Simple quotes : les variables sont résolues par le shell,
-                        //    pas par Groovy — élimine le warning d'interpolation sur les secrets
                         sh '''
                             set -e
                             ssh-keyscan -H $STAGING_HOST >> ~/.ssh/known_hosts
 
                             # Transfert du script SQL d'init vers le serveur Staging
                             scp -o StrictHostKeyChecking=no \
-                                PayMyBuddy/initdb/create.sql \
+                                ${WORKSPACE}/PayMyBuddy/initdb/create.sql \
                                 ubuntu@$STAGING_HOST:/tmp/create.sql
 
                             ssh -o StrictHostKeyChecking=no ubuntu@$STAGING_HOST bash << EOF
@@ -183,7 +181,7 @@ EOF
 
                             # Transfert du script SQL d'init vers le serveur Production
                             scp -o StrictHostKeyChecking=no \
-                                PayMyBuddy/initdb/create.sql \
+                                ${WORKSPACE}/PayMyBuddy/initdb/create.sql \
                                 ubuntu@$PROD_HOST:/tmp/create.sql
 
                             ssh -o StrictHostKeyChecking=no ubuntu@$PROD_HOST bash << EOF
