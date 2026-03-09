@@ -113,7 +113,6 @@ docker rm -f paymybuddy-db 2>/dev/null || true
 docker volume rm paymybuddy-db-data 2>/dev/null || true
 docker run -d --name paymybuddy-db \\
     --network paymybuddy-net \\
-    -e MYSQL_DATABASE=db_paymybuddy \\
     -e MYSQL_USER=${env.MYSQL_USER} \\
     -e MYSQL_PASSWORD=${env.MYSQL_PASSWORD} \\
     -e MYSQL_ROOT_PASSWORD=${env.MYSQL_PASSWORD} \\
@@ -204,7 +203,6 @@ docker rm -f paymybuddy-db 2>/dev/null || true
 docker volume rm paymybuddy-db-data 2>/dev/null || true
 docker run -d --name paymybuddy-db \\
     --network paymybuddy-net \\
-    -e MYSQL_DATABASE=db_paymybuddy \\
     -e MYSQL_USER=${env.MYSQL_USER} \\
     -e MYSQL_PASSWORD=${env.MYSQL_PASSWORD} \\
     -e MYSQL_ROOT_PASSWORD=${env.MYSQL_PASSWORD} \\
