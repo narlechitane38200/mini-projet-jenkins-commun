@@ -10,7 +10,7 @@ pipeline {
         SLACK_CHANNEL         = "#mini-projet-jenkins-radouane"
         APP_PORT              = "8080"
         DB_PORT               = "3306"
-        STAGING_HOST          = "ec2-3-235-91-231.compute-1.amazonaws.com"
+        STAGING_HOST          = "ec2-3-231-93-36.compute-1.amazonaws.com"
         PROD_HOST             = "ec2-100-48-90-3.compute-1.amazonaws.com"
     }
 
