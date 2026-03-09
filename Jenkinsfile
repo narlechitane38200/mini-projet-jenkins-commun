@@ -16,10 +16,9 @@ pipeline {
 
     stages {
 
-        // ─────────────────────────────────────────
-        // TESTS
-        // ─────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────────
         stage('Tests') {
+        // ──────────────────────────────────────────────────────────────────────
             agent {
                 docker {
                     image 'maven:3.9-eclipse-temurin-17'
@@ -38,10 +37,9 @@ pipeline {
             }
         }
 
-        // ─────────────────────────────────────────
-        // QUALITE DU CODE
-        // ─────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────────
         stage('Code Quality - SonarCloud') {
+        // ──────────────────────────────────────────────────────────────────────
             agent {
                 docker {
                     image 'maven:3.9-eclipse-temurin-17'
@@ -61,10 +59,9 @@ pipeline {
             }
         }
 
-        // ─────────────────────────────────────────
-        // BUILD & PUSH DOCKER
-        // ─────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────────
         stage('Build & Push Docker Image') {
+        // ──────────────────────────────────────────────────────────────────────
             agent {
                 docker {
                     image 'docker:24'
@@ -89,10 +86,9 @@ pipeline {
             }
         }
 
-        // ─────────────────────────────────────────
-        // DEPLOY STAGING
-        // ─────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────────
         stage('Deploy - Staging') {
+        // ──────────────────────────────────────────────────────────────────────
             agent { label 'built-in' }
             steps {
                 withCredentials([
@@ -106,11 +102,9 @@ pipeline {
                         writeFile file: '/tmp/deploy-staging.sh', text: """#!/bin/bash
 set -e
 
-# Création du réseau Docker si inexistant
 docker network inspect paymybuddy-net >/dev/null 2>&1 || \\
     docker network create paymybuddy-net
 
-# Suppression du conteneur ET de son volume anonyme pour forcer la réinitialisation de la base
 docker rm -fv paymybuddy-db 2>/dev/null || true
 docker run -d --name paymybuddy-db \\
     --network paymybuddy-net \\
@@ -122,14 +116,12 @@ docker run -d --name paymybuddy-db \\
     -p ${env.DB_PORT}:3306 \\
     mysql:8.0
 
-# Attente que MySQL soit prêt
 until docker exec paymybuddy-db mysqladmin ping \\
     -u root -p${env.MYSQL_PASSWORD} --silent 2>/dev/null; do
     echo "Waiting for MySQL to be ready..."; sleep 3
 done
 echo "MySQL is ready!"
 
-# Démarrage de l'application en s'assurant qu'elle est sur le même réseau que la DB
 docker rm -f paymybuddy-app 2>/dev/null || true
 docker run -d --name paymybuddy-app \\
     --network paymybuddy-net \\
@@ -139,7 +131,6 @@ docker run -d --name paymybuddy-app \\
     -p ${env.APP_PORT}:8080 \\
     ${env.DOCKERHUB_IMAGE}:${env.BUILD_NUMBER}
 
-# Vérification que les deux conteneurs sont bien sur le réseau
 echo "Conteneurs sur paymybuddy-net :"
 docker network inspect paymybuddy-net --format '{{range .Containers}}{{.Name}} {{end}}'
 """
@@ -166,10 +157,9 @@ docker network inspect paymybuddy-net --format '{{range .Containers}}{{.Name}} {
             }
         }
 
-        // ─────────────────────────────────────────
-        // VALIDATION STAGING
-        // ─────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────────
         stage('Validation Tests - Staging') {
+        // ──────────────────────────────────────────────────────────────────────
             agent {
                 docker { image 'curlimages/curl:latest' }
             }
@@ -182,11 +172,12 @@ docker network inspect paymybuddy-net --format '{{range .Containers}}{{.Name}} {
             }
         }
 
-        // ─────────────────────────────────────────
-        // DEPLOY PRODUCTION
-        // ─────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────────
         stage('Deploy - Production') {
-            when  { branch 'main' }
+        // ──────────────────────────────────────────────────────────────────────
+            when {
+                expression { env.GIT_BRANCH == 'origin/main' }
+            }
             agent { label 'built-in' }
             input {
                 message "Déployer en Production ?"
@@ -204,11 +195,9 @@ docker network inspect paymybuddy-net --format '{{range .Containers}}{{.Name}} {
                         writeFile file: '/tmp/deploy-prod.sh', text: """#!/bin/bash
 set -e
 
-# Création du réseau Docker si inexistant
 docker network inspect paymybuddy-net >/dev/null 2>&1 || \\
     docker network create paymybuddy-net
 
-# Suppression du conteneur ET de son volume anonyme pour forcer la réinitialisation de la base
 docker rm -fv paymybuddy-db 2>/dev/null || true
 docker run -d --name paymybuddy-db \\
     --network paymybuddy-net \\
@@ -220,14 +209,12 @@ docker run -d --name paymybuddy-db \\
     -p ${env.DB_PORT}:3306 \\
     mysql:8.0
 
-# Attente que MySQL soit prêt
 until docker exec paymybuddy-db mysqladmin ping \\
     -u root -p${env.MYSQL_PASSWORD} --silent 2>/dev/null; do
     echo "Waiting for MySQL to be ready..."; sleep 3
 done
 echo "MySQL is ready!"
 
-# Démarrage de l'application en s'assurant qu'elle est sur le même réseau que la DB
 docker rm -f paymybuddy-app 2>/dev/null || true
 docker run -d --name paymybuddy-app \\
     --network paymybuddy-net \\
@@ -237,7 +224,6 @@ docker run -d --name paymybuddy-app \\
     -p ${env.APP_PORT}:8080 \\
     ${env.DOCKERHUB_IMAGE}:${env.BUILD_NUMBER}
 
-# Vérification que les deux conteneurs sont bien sur le réseau
 echo "Conteneurs sur paymybuddy-net :"
 docker network inspect paymybuddy-net --format '{{range .Containers}}{{.Name}} {{end}}'
 """
@@ -264,11 +250,12 @@ docker network inspect paymybuddy-net --format '{{range .Containers}}{{.Name}} {
             }
         }
 
-        // ─────────────────────────────────────────
-        // VALIDATION PRODUCTION
-        // ─────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────────────
         stage('Validation Tests - Production') {
-            when { branch 'main' }
+        // ──────────────────────────────────────────────────────────────────────
+            when {
+                expression { env.GIT_BRANCH == 'origin/main' }
+            }
             agent {
                 docker { image 'curlimages/curl:latest' }
             }
@@ -282,9 +269,6 @@ docker network inspect paymybuddy-net --format '{{range .Containers}}{{.Name}} {
         }
     }
 
-    // ─────────────────────────────────────────
-    // NOTIFICATIONS SLACK
-    // ─────────────────────────────────────────
     post {
         success {
             slackSend(
