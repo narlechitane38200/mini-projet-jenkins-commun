@@ -114,6 +114,7 @@ docker network inspect paymybuddy-net >/dev/null 2>&1 || \\
 docker rm -fv paymybuddy-db 2>/dev/null || true
 docker run -d --name paymybuddy-db \\
     --network paymybuddy-net \\
+    -e MYSQL_DATABASE=db_paymybuddy \\
     -e MYSQL_ROOT_PASSWORD=${env.MYSQL_PASSWORD} \\
     -e MYSQL_USER=${env.MYSQL_USER} \\
     -e MYSQL_PASSWORD=${env.MYSQL_PASSWORD} \\
@@ -211,6 +212,7 @@ docker network inspect paymybuddy-net >/dev/null 2>&1 || \\
 docker rm -fv paymybuddy-db 2>/dev/null || true
 docker run -d --name paymybuddy-db \\
     --network paymybuddy-net \\
+    -e MYSQL_DATABASE=db_paymybuddy \\
     -e MYSQL_ROOT_PASSWORD=${env.MYSQL_PASSWORD} \\
     -e MYSQL_USER=${env.MYSQL_USER} \\
     -e MYSQL_PASSWORD=${env.MYSQL_PASSWORD} \\
