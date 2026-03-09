@@ -106,26 +106,29 @@ pipeline {
                         writeFile file: '/tmp/deploy-staging.sh', text: """#!/bin/bash
 set -e
 
+# Création du réseau Docker si inexistant
 docker network inspect paymybuddy-net >/dev/null 2>&1 || \\
     docker network create paymybuddy-net
 
-docker rm -f paymybuddy-db 2>/dev/null || true
-docker volume rm paymybuddy-db-data 2>/dev/null || true
+# Suppression du conteneur ET de son volume anonyme pour forcer la réinitialisation de la base
+docker rm -fv paymybuddy-db 2>/dev/null || true
 docker run -d --name paymybuddy-db \\
     --network paymybuddy-net \\
+    -e MYSQL_ROOT_PASSWORD=${env.MYSQL_PASSWORD} \\
     -e MYSQL_USER=${env.MYSQL_USER} \\
     -e MYSQL_PASSWORD=${env.MYSQL_PASSWORD} \\
-    -e MYSQL_ROOT_PASSWORD=${env.MYSQL_PASSWORD} \\
     -v /tmp/create.sql:/docker-entrypoint-initdb.d/create.sql \\
     -p ${env.DB_PORT}:3306 \\
     mysql:8.0
 
+# Attente que MySQL soit prêt
 until docker exec paymybuddy-db mysqladmin ping \\
     -u root -p${env.MYSQL_PASSWORD} --silent 2>/dev/null; do
     echo "Waiting for MySQL to be ready..."; sleep 3
 done
 echo "MySQL is ready!"
 
+# Démarrage de l'application en s'assurant qu'elle est sur le même réseau que la DB
 docker rm -f paymybuddy-app 2>/dev/null || true
 docker run -d --name paymybuddy-app \\
     --network paymybuddy-net \\
@@ -134,6 +137,10 @@ docker run -d --name paymybuddy-app \\
     -e SPRING_DATASOURCE_PASSWORD=${env.MYSQL_PASSWORD} \\
     -p ${env.APP_PORT}:8080 \\
     ${env.DOCKERHUB_IMAGE}:${env.BUILD_NUMBER}
+
+# Vérification que les deux conteneurs sont bien sur le réseau
+echo "Conteneurs sur paymybuddy-net :"
+docker network inspect paymybuddy-net --format '{{range .Containers}}{{.Name}} {{end}}'
 """
                     }
                     sshagent(credentials: ['ec2-ssh-key']) {
@@ -196,26 +203,29 @@ docker run -d --name paymybuddy-app \\
                         writeFile file: '/tmp/deploy-prod.sh', text: """#!/bin/bash
 set -e
 
+# Création du réseau Docker si inexistant
 docker network inspect paymybuddy-net >/dev/null 2>&1 || \\
     docker network create paymybuddy-net
 
-docker rm -f paymybuddy-db 2>/dev/null || true
-docker volume rm paymybuddy-db-data 2>/dev/null || true
+# Suppression du conteneur ET de son volume anonyme pour forcer la réinitialisation de la base
+docker rm -fv paymybuddy-db 2>/dev/null || true
 docker run -d --name paymybuddy-db \\
     --network paymybuddy-net \\
+    -e MYSQL_ROOT_PASSWORD=${env.MYSQL_PASSWORD} \\
     -e MYSQL_USER=${env.MYSQL_USER} \\
     -e MYSQL_PASSWORD=${env.MYSQL_PASSWORD} \\
-    -e MYSQL_ROOT_PASSWORD=${env.MYSQL_PASSWORD} \\
     -v /tmp/create.sql:/docker-entrypoint-initdb.d/create.sql \\
     -p ${env.DB_PORT}:3306 \\
     mysql:8.0
 
+# Attente que MySQL soit prêt
 until docker exec paymybuddy-db mysqladmin ping \\
     -u root -p${env.MYSQL_PASSWORD} --silent 2>/dev/null; do
     echo "Waiting for MySQL to be ready..."; sleep 3
 done
 echo "MySQL is ready!"
 
+# Démarrage de l'application en s'assurant qu'elle est sur le même réseau que la DB
 docker rm -f paymybuddy-app 2>/dev/null || true
 docker run -d --name paymybuddy-app \\
     --network paymybuddy-net \\
@@ -224,6 +234,10 @@ docker run -d --name paymybuddy-app \\
     -e SPRING_DATASOURCE_PASSWORD=${env.MYSQL_PASSWORD} \\
     -p ${env.APP_PORT}:8080 \\
     ${env.DOCKERHUB_IMAGE}:${env.BUILD_NUMBER}
+
+# Vérification que les deux conteneurs sont bien sur le réseau
+echo "Conteneurs sur paymybuddy-net :"
+docker network inspect paymybuddy-net --format '{{range .Containers}}{{.Name}} {{end}}'
 """
                     }
                     sshagent(credentials: ['ec2-ssh-key']) {
