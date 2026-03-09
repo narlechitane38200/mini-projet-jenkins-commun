@@ -94,18 +94,24 @@ pipeline {
                     sshagent(credentials: ['ec2-ssh-key']) {
                         sh '''
                             set -e
-                            mkdir -p ~/.ssh
-                            chmod 700 ~/.ssh
+                            mkdir -p ~/.ssh && chmod 700 ~/.ssh
                             ssh-keyscan -H $STAGING_HOST >> ~/.ssh/known_hosts
-                            chmod 600 ~/.ssh/known_hosts
 
-                            # Transfert du script SQL d'init vers le serveur Staging
                             scp -o StrictHostKeyChecking=no \
-                                -o UserKnownHostsFile=~/.ssh/known_hosts \
-                                ${WORKSPACE}/PayMyBuddy/initdb/create.sql \
+                                $WORKSPACE/PayMyBuddy/initdb/create.sql \
                                 ubuntu@$STAGING_HOST:/tmp/create.sql
 
-                            ssh -o StrictHostKeyChecking=no ubuntu@$STAGING_HOST bash << EOF
+                            ssh -o StrictHostKeyChecking=no ubuntu@$STAGING_HOST \
+                                "ls -la /tmp/create.sql && echo 'Fichier SQL copié avec succès'"
+
+                            ssh -o StrictHostKeyChecking=no ubuntu@$STAGING_HOST \
+                                MYSQL_USER="$MYSQL_USER" \
+                                MYSQL_PASSWORD="$MYSQL_PASSWORD" \
+                                DB_PORT="$DB_PORT" \
+                                APP_PORT="$APP_PORT" \
+                                DOCKERHUB_IMAGE="$DOCKERHUB_IMAGE" \
+                                BUILD_NUMBER="$BUILD_NUMBER" \
+                                bash -s << 'ENDSSH'
                                 set -e
 
                                 docker network inspect paymybuddy-net >/dev/null 2>&1 || \
@@ -136,7 +142,7 @@ pipeline {
                                     -e SPRING_DATASOURCE_PASSWORD="$MYSQL_PASSWORD" \
                                     -p $APP_PORT:8080 \
                                     $DOCKERHUB_IMAGE:$BUILD_NUMBER
-EOF
+ENDSSH
                         '''
                     }
                 }
@@ -181,18 +187,24 @@ EOF
                     sshagent(credentials: ['ec2-ssh-key']) {
                         sh '''
                             set -e
-                            mkdir -p ~/.ssh
-                            chmod 700 ~/.ssh
-                            ssh-keyscan -H $STAGING_HOST >> ~/.ssh/known_hosts
-                            chmod 600 ~/.ssh/known_hosts
+                            mkdir -p ~/.ssh && chmod 700 ~/.ssh
+                            ssh-keyscan -H $PROD_HOST >> ~/.ssh/known_hosts
 
-                            # Transfert du script SQL d'init vers le serveur Staging
                             scp -o StrictHostKeyChecking=no \
-                                -o UserKnownHostsFile=~/.ssh/known_hosts \
-                                ${WORKSPACE}/PayMyBuddy/initdb/create.sql \
-                                ubuntu@$STAGING_HOST:/tmp/create.sql
+                                $WORKSPACE/PayMyBuddy/initdb/create.sql \
+                                ubuntu@$PROD_HOST:/tmp/create.sql
 
-                            ssh -o StrictHostKeyChecking=no ubuntu@$PROD_HOST bash << EOF
+                            ssh -o StrictHostKeyChecking=no ubuntu@$PROD_HOST \
+                                "ls -la /tmp/create.sql && echo 'Fichier SQL copié avec succès'"
+
+                            ssh -o StrictHostKeyChecking=no ubuntu@$PROD_HOST \
+                                MYSQL_USER="$MYSQL_USER" \
+                                MYSQL_PASSWORD="$MYSQL_PASSWORD" \
+                                DB_PORT="$DB_PORT" \
+                                APP_PORT="$APP_PORT" \
+                                DOCKERHUB_IMAGE="$DOCKERHUB_IMAGE" \
+                                BUILD_NUMBER="$BUILD_NUMBER" \
+                                bash -s << 'ENDSSH'
                                 set -e
 
                                 docker network inspect paymybuddy-net >/dev/null 2>&1 || \
@@ -223,7 +235,7 @@ EOF
                                     -e SPRING_DATASOURCE_PASSWORD="$MYSQL_PASSWORD" \
                                     -p $APP_PORT:8080 \
                                     $DOCKERHUB_IMAGE:$BUILD_NUMBER
-EOF
+ENDSSH
                         '''
                     }
                 }
