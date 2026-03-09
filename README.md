@@ -51,9 +51,10 @@ Infrastructure AWS :
 ### Modèle Gitflow
 
 ```
-branche main    ──► Tests ──► SonarCloud ──► Docker ──► Staging ──► Production
-autres branches ──► Tests ──► SonarCloud ──► Docker
+origin/main    ──► Tests ──► SonarCloud ──► Docker ──► Staging ──► [input] ──► Production
+autres branches ──► Tests ──► SonarCloud ──► Docker ──► Staging
 ```
+> Le déploiement en Production nécessite une **validation manuelle** via l'interface Jenkins (`input`).
 
 ---
 
