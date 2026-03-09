@@ -1,4 +1,4 @@
-CREATE DATABASE db_paymybuddy;
+CREATE DATABASE IF NOT EXISTS db_paymybuddy;
 USE db_paymybuddy;
 
 CREATE TABLE user (
