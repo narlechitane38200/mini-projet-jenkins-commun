@@ -102,6 +102,41 @@ pipeline {
                         passwordVariable: 'MYSQL_PASSWORD'
                     )
                 ]) {
+                    script {
+                        writeFile file: '/tmp/deploy-staging.sh', text: """#!/bin/bash
+set -e
+
+docker network inspect paymybuddy-net >/dev/null 2>&1 || \\
+    docker network create paymybuddy-net
+
+docker rm -f paymybuddy-db 2>/dev/null || true
+docker volume rm paymybuddy-db-data 2>/dev/null || true
+docker run -d --name paymybuddy-db \\
+    --network paymybuddy-net \\
+    -e MYSQL_DATABASE=db_paymybuddy \\
+    -e MYSQL_USER=${env.MYSQL_USER} \\
+    -e MYSQL_PASSWORD=${env.MYSQL_PASSWORD} \\
+    -e MYSQL_ROOT_PASSWORD=${env.MYSQL_PASSWORD} \\
+    -v /tmp/create.sql:/docker-entrypoint-initdb.d/create.sql \\
+    -p ${env.DB_PORT}:3306 \\
+    mysql:8.0
+
+until docker exec paymybuddy-db mysqladmin ping \\
+    -u root -p${env.MYSQL_PASSWORD} --silent 2>/dev/null; do
+    echo "Waiting for MySQL to be ready..."; sleep 3
+done
+echo "MySQL is ready!"
+
+docker rm -f paymybuddy-app 2>/dev/null || true
+docker run -d --name paymybuddy-app \\
+    --network paymybuddy-net \\
+    -e SPRING_DATASOURCE_URL=jdbc:mysql://paymybuddy-db:3306/db_paymybuddy \\
+    -e SPRING_DATASOURCE_USERNAME=${env.MYSQL_USER} \\
+    -e SPRING_DATASOURCE_PASSWORD=${env.MYSQL_PASSWORD} \\
+    -p ${env.APP_PORT}:8080 \\
+    ${env.DOCKERHUB_IMAGE}:${env.BUILD_NUMBER}
+"""
+                    }
                     sshagent(credentials: ['ec2-ssh-key']) {
                         sh '''
                             set -e
@@ -111,40 +146,6 @@ pipeline {
                             scp -B -o StrictHostKeyChecking=no \
                                 $WORKSPACE/PayMyBuddy/initdb/create.sql \
                                 ubuntu@$STAGING_HOST:/tmp/create.sql
-
-                            cat > /tmp/deploy-staging.sh << SCRIPT
-#!/bin/bash
-set -e
-
-docker network inspect paymybuddy-net >/dev/null 2>&1 || \\
-    docker network create paymybuddy-net
-
-docker rm -f paymybuddy-db 2>/dev/null || true
-docker run -d --name paymybuddy-db \\
-    --network paymybuddy-net \\
-    -e MYSQL_DATABASE=db_paymybuddy \\
-    -e MYSQL_USER="$MYSQL_USER" \\
-    -e MYSQL_PASSWORD="$MYSQL_PASSWORD" \\
-    -e MYSQL_ROOT_PASSWORD="$MYSQL_PASSWORD" \\
-    -v /tmp/create.sql:/docker-entrypoint-initdb.d/create.sql \\
-    -p $DB_PORT:3306 \\
-    mysql:8.0
-
-until docker exec paymybuddy-db mysqladmin ping \\
-    -u root -p"$MYSQL_PASSWORD" --silent 2>/dev/null; do
-    echo "Waiting for MySQL to be ready..."; sleep 3
-done
-echo "MySQL is ready!"
-
-docker rm -f paymybuddy-app 2>/dev/null || true
-docker run -d --name paymybuddy-app \\
-    --network paymybuddy-net \\
-    -e SPRING_DATASOURCE_URL=jdbc:mysql://paymybuddy-db:3306/db_paymybuddy \\
-    -e SPRING_DATASOURCE_USERNAME="$MYSQL_USER" \\
-    -e SPRING_DATASOURCE_PASSWORD="$MYSQL_PASSWORD" \\
-    -p $APP_PORT:8080 \\
-    $DOCKERHUB_IMAGE:$BUILD_NUMBER
-SCRIPT
 
                             scp -B -o StrictHostKeyChecking=no \
                                 /tmp/deploy-staging.sh \
@@ -192,6 +193,41 @@ SCRIPT
                         passwordVariable: 'MYSQL_PASSWORD'
                     )
                 ]) {
+                    script {
+                        writeFile file: '/tmp/deploy-prod.sh', text: """#!/bin/bash
+set -e
+
+docker network inspect paymybuddy-net >/dev/null 2>&1 || \\
+    docker network create paymybuddy-net
+
+docker rm -f paymybuddy-db 2>/dev/null || true
+docker volume rm paymybuddy-db-data 2>/dev/null || true
+docker run -d --name paymybuddy-db \\
+    --network paymybuddy-net \\
+    -e MYSQL_DATABASE=db_paymybuddy \\
+    -e MYSQL_USER=${env.MYSQL_USER} \\
+    -e MYSQL_PASSWORD=${env.MYSQL_PASSWORD} \\
+    -e MYSQL_ROOT_PASSWORD=${env.MYSQL_PASSWORD} \\
+    -v /tmp/create.sql:/docker-entrypoint-initdb.d/create.sql \\
+    -p ${env.DB_PORT}:3306 \\
+    mysql:8.0
+
+until docker exec paymybuddy-db mysqladmin ping \\
+    -u root -p${env.MYSQL_PASSWORD} --silent 2>/dev/null; do
+    echo "Waiting for MySQL to be ready..."; sleep 3
+done
+echo "MySQL is ready!"
+
+docker rm -f paymybuddy-app 2>/dev/null || true
+docker run -d --name paymybuddy-app \\
+    --network paymybuddy-net \\
+    -e SPRING_DATASOURCE_URL=jdbc:mysql://paymybuddy-db:3306/db_paymybuddy \\
+    -e SPRING_DATASOURCE_USERNAME=${env.MYSQL_USER} \\
+    -e SPRING_DATASOURCE_PASSWORD=${env.MYSQL_PASSWORD} \\
+    -p ${env.APP_PORT}:8080 \\
+    ${env.DOCKERHUB_IMAGE}:${env.BUILD_NUMBER}
+"""
+                    }
                     sshagent(credentials: ['ec2-ssh-key']) {
                         sh '''
                             set -e
@@ -201,40 +237,6 @@ SCRIPT
                             scp -B -o StrictHostKeyChecking=no \
                                 $WORKSPACE/PayMyBuddy/initdb/create.sql \
                                 ubuntu@$PROD_HOST:/tmp/create.sql
-
-                            cat > /tmp/deploy-prod.sh << SCRIPT
-#!/bin/bash
-set -e
-
-docker network inspect paymybuddy-net >/dev/null 2>&1 || \\
-    docker network create paymybuddy-net
-
-docker rm -f paymybuddy-db 2>/dev/null || true
-docker run -d --name paymybuddy-db \\
-    --network paymybuddy-net \\
-    -e MYSQL_DATABASE=db_paymybuddy \\
-    -e MYSQL_USER="$MYSQL_USER" \\
-    -e MYSQL_PASSWORD="$MYSQL_PASSWORD" \\
-    -e MYSQL_ROOT_PASSWORD="$MYSQL_PASSWORD" \\
-    -v /tmp/create.sql:/docker-entrypoint-initdb.d/create.sql \\
-    -p $DB_PORT:3306 \\
-    mysql:8.0
-
-until docker exec paymybuddy-db mysqladmin ping \\
-    -u root -p"$MYSQL_PASSWORD" --silent 2>/dev/null; do
-    echo "Waiting for MySQL to be ready..."; sleep 3
-done
-echo "MySQL is ready!"
-
-docker rm -f paymybuddy-app 2>/dev/null || true
-docker run -d --name paymybuddy-app \\
-    --network paymybuddy-net \\
-    -e SPRING_DATASOURCE_URL=jdbc:mysql://paymybuddy-db:3306/db_paymybuddy \\
-    -e SPRING_DATASOURCE_USERNAME="$MYSQL_USER" \\
-    -e SPRING_DATASOURCE_PASSWORD="$MYSQL_PASSWORD" \\
-    -p $APP_PORT:8080 \\
-    $DOCKERHUB_IMAGE:$BUILD_NUMBER
-SCRIPT
 
                             scp -B -o StrictHostKeyChecking=no \
                                 /tmp/deploy-prod.sh \
